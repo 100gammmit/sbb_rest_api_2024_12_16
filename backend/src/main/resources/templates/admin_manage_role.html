@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html layout:decorate="~{layout}">
+<div layout:fragment="content" class="container">
+    <h1 class="mt-5">관리자 권한 관리</h1>
+
+    <div th:if="${successMessage}" class="alert alert-success" role="alert">
+        <span th:text="${successMessage}"></span>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger" role="alert">
+        <span th:text="${errorMessage}"></span>
+    </div>
+
+    <div>
+        <p>현재 사용자: <span th:text="${#authentication.principal.username}"></span></p>
+        <p>권한 목록: <span th:text="${#authentication.authorities}"></span></p>
+    </div>
+
+    <!-- 권한 부여/제거 테이블 -->
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th scope="col">사용자</th>
+            <th scope="col">현재 권한</th>
+            <th scope="col">권한 부여/제거</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.username}"></td>
+            <td th:text="${user.authorities}"></td>
+
+            <td>
+                <!-- 권한 부여 폼 -->
+                <form th:action="@{/admin/assignRole}" method="post" class="mb-3">
+                    <input type="hidden" name="userId" th:value="${user.username}" />
+                    <label for="roleInput">권한 부여:</label>
+                    <textarea name="role" id="roleInput" class="form-control" rows="1" placeholder="예: ADMIN, USER"></textarea>
+                    <button type="submit" class="btn btn-success mt-2">권한 부여</button>
+                </form>
+
+                <!-- 권한 제거 폼 -->
+                <form th:action="@{/admin/removeRole}" method="post">
+                    <input type="hidden" name="userId" th:value="${user.username}" />
+                    <label for="roleInputRemove">권한 제거:</label>
+                    <textarea name="role" id="roleInputRemove" class="form-control" rows="1" placeholder="예: ADMIN, USER"></textarea>
+                    <button type="submit" class="btn btn-danger mt-2">권한 제거</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0-alpha1/js/bootstrap.bundle.min.js"></script>
+</html>
