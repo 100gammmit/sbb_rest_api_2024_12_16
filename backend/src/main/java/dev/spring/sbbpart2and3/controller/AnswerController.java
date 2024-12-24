@@ -11,16 +11,18 @@ import dev.spring.sbbpart2and3.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URI;
 import java.security.Principal;
 
-@Controller
-@RequestMapping("answer")
+@RestController
+@RequestMapping("/answers")
 public class AnswerController {
     private final AnswerService answerService;
     private final QuestionService questionService;
@@ -34,64 +36,65 @@ public class AnswerController {
     }
 
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("create/{id}")
-    public String createAnswer(@PathVariable("id") Long questionId,
+    @PostMapping("/create/{id}")
+    public ResponseEntity<AnswerDTO> createAnswer(@PathVariable("id") Long questionId,
                          @Valid AnswerForm answerForm, BindingResult bindingResult,
                          Principal principal) {
         if (bindingResult.hasErrors()) {
-            return "redirect:/question/" + questionId;
+            return ResponseEntity.badRequest().build();
         }
         Question question = questionService.getQuestionById(questionId);
         SiteUser siteUser = userService.findUserByUsername(principal.getName());
         Answer answer = new Answer(answerForm.getContent(), siteUser);
+
         question.addAnswer(answer);
         AnswerDTO answerDTO = answerService.save(answer);
-        return "redirect:/question/detail/" + questionId + "#answer_" + answerDTO.id();
+        return ResponseEntity.created(URI.create("redirect:/question/detail/" + questionId + "#answer_" + answerDTO.id()))
+                .body(answerDTO);
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @GetMapping("modify/{id}")
-    public String modifyAnswer(@PathVariable("id") Long id, AnswerForm answerForm, Principal principal) {
+    /*@PreAuthorize("isAuthenticated()")
+    @GetMapping("/modify/{id}")
+    public ResponseEntity<AnswerForm> modifyAnswer(@PathVariable("id") Long id, AnswerForm answerForm, Principal principal) {
         AnswerDTO answerDTO = answerService.getAnswerDTOById(id);
         if(!answerDTO.author().equals(principal.getName())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "수정 권한이 없습니다.");
+            return  ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         answerForm.setContent(answerDTO.content());
-        return "answer_form";
-    }
+        return ResponseEntity.ok(answerForm);
+    }*/
 
     @PreAuthorize("isAuthenticated()")
-    @PostMapping("modify/{id}")
-    public String modifyAnswer(@PathVariable("id") Long id, Principal principal,
+    @PostMapping("/modify/{id}")
+    public ResponseEntity<Long> modifyAnswer(@PathVariable("id") Long id, Principal principal,
             @Valid AnswerForm answerForm, BindingResult bindingResult) {
         if(bindingResult.hasErrors()) {
-            return "answer_form";
+            return ResponseEntity.badRequest().build();
         }
         AnswerDTO answerDTO = answerService.getAnswerDTOById(id);
         if(!answerDTO.author().equals(principal.getName())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "수정 권한이 없습니다.");
+            return  ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         answerService.modify(id, answerForm.getContent());
-        return "redirect:/question/detail/" + answerDTO.questionId() + "#answer_" + answerDTO.id();
+        return ResponseEntity.ok(id);
     }
 
     @PreAuthorize("isAuthenticated()")
-    @GetMapping("delete/{id}")
-    public String deleteAnswer(@PathVariable("id") Long id, AnswerForm answerForm, Principal principal) {
+    @GetMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteAnswer(@PathVariable("id") Long id, AnswerForm answerForm, Principal principal) {
         AnswerDTO answerDTO = answerService.getAnswerDTOById(id);
         if(!answerDTO.author().equals(principal.getName())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "삭제 권한이 없습니다.");
+            return  ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         answerService.delete(id);
-        return "redirect:/question/detail/" + answerDTO.questionId();
+        return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/vote/{id}")
-    public String voteAnswer(@PathVariable("id") Long id, Principal principal,
+    public ResponseEntity<Long> voteAnswer(@PathVariable("id") Long id, Principal principal,
                              @RequestParam("questionId") Long questionId) {
         AnswerDTO answerDTO = answerService.vote(id, principal.getName());
-        return "redirect:/question/detail/" + questionId + "#answer_" + answerDTO.id();
+        return ResponseEntity.ok(id);
     }
-
 }
