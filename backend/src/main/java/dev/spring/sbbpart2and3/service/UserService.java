@@ -9,6 +9,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -42,5 +44,10 @@ public class UserService {
         SiteUser user = findUserByUsername(username);
         user.getRoles().remove(role);
         userRepository.save(user);
+    }
+
+    public boolean authenticate(String username, String password) {
+        Optional<SiteUser> user = userRepository.findByUsername(username);
+        return user.isPresent() && passwordEncoder.matches(password, user.get().getPassword());
     }
 }
